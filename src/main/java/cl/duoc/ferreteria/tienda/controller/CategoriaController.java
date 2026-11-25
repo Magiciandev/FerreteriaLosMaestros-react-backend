@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 // Lectura pública; crear, editar y eliminar solo ADMIN (lo exige SecurityConfig).
 @RestController
-@RequestMapping("/api/categorias")
+@RequestMapping("/api/v1/categorias")
 public class CategoriaController {
   private final CategoriaService categorias;
   public CategoriaController(CategoriaService categorias) { this.categorias = categorias; }

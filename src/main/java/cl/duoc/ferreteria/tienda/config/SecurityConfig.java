@@ -15,8 +15,9 @@ import org.springframework.web.cors.*;
 @Configuration
 public class SecurityConfig {
 
-  // Públicos: ver categorías y productos, comprar (POST /api/ordenes) y enviar una consulta.
-  // Todo lo demás de /api (crear, editar y eliminar, ver órdenes y consultas) es solo para ADMIN.
+  // Públicos: ver categorías y productos, comprar (POST /api/v1/ordenes) y enviar una consulta.
+  // El VENDEDOR además puede ver las órdenes (lista y detalle), solo lectura.
+  // Todo lo demás de /api (crear, editar y eliminar, ver consultas) es solo para ADMIN.
   // Sin token válido responde 401; con un rol sin permiso, 403 con { "error": "Acceso denegado" }.
   @Bean SecurityFilterChain filterChain(HttpSecurity http,
       JwtAuthenticationFilter jwtFilter) throws Exception {
@@ -27,8 +28,9 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
           "/v3/api-docs/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/api/categorias/**", "/api/productos/**").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/ordenes", "/api/consultas").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/v1/categorias/**", "/api/v1/productos/**").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/v1/ordenes", "/api/v1/consultas").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/v1/ordenes", "/api/v1/ordenes/**").hasAnyRole("ADMIN", "VENDEDOR")
         .requestMatchers("/api/**").hasRole("ADMIN")
         .anyRequest().denyAll())
       .exceptionHandling(e -> e

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 // Comprar es público; ver las órdenes es solo para ADMIN (lo exige SecurityConfig).
 @RestController
-@RequestMapping("/api/ordenes")
+@RequestMapping("/api/v1/ordenes")
 public class OrdenController {
   private final OrdenService ordenes;
   public OrdenController(OrdenService ordenes) { this.ordenes = ordenes; }

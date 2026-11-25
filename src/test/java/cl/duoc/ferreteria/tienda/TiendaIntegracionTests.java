@@ -69,6 +69,10 @@ class TiendaIntegracionTests {
     return peticion.header("Authorization", "Bearer " + token("ADMIN"));
   }
 
+  private MockHttpServletRequestBuilder vendedor(MockHttpServletRequestBuilder peticion) {
+    return peticion.header("Authorization", "Bearer " + token("VENDEDOR"));
+  }
+
   private MockHttpServletRequestBuilder conJson(MockHttpServletRequestBuilder peticion, String cuerpo) {
     return peticion.contentType(MediaType.APPLICATION_JSON).content(cuerpo);
   }
@@ -93,16 +97,16 @@ class TiendaIntegracionTests {
       + "\"departamento\":\"12B\",\"region\":\"Metropolitana de Santiago\",\"comuna\":\"Santiago\",\"indicaciones\":\"Portón negro\"}";
 
   private void crearProductoDePrueba(String id, int precio, int descuento, int stock) throws Exception {
-    respuesta(conJson(admin(post("/api/productos")), producto(id, "herramientas", precio, descuento, stock)), 201);
+    respuesta(conJson(admin(post("/api/v1/productos")), producto(id, "herramientas", precio, descuento, stock)), 201);
   }
 
   // ---------- Lectura pública ----------
 
   @Test
   void categoriasYProductosSePuedenVerSinIniciarSesion() throws Exception {
-    String categorias = respuesta(get("/api/categorias"), 200);
-    String listaProductos = respuesta(get("/api/productos"), 200);
-    String uno = respuesta(get("/api/productos/mc001"), 200);
+    String categorias = respuesta(get("/api/v1/categorias"), 200);
+    String listaProductos = respuesta(get("/api/v1/productos"), 200);
+    String uno = respuesta(get("/api/v1/productos/mc001"), 200);
 
     assertTrue(categorias.contains("\"slug\":\"herramientas\""));
     assertTrue(listaProductos.contains("\"id\":\"MC001\""));
@@ -112,12 +116,12 @@ class TiendaIntegracionTests {
 
   @Test
   void unProductoQueNoExisteResponde404() throws Exception {
-    assertTrue(respuesta(get("/api/productos/ZZZ999"), 404).contains("Producto no encontrado: ZZZ999"));
+    assertTrue(respuesta(get("/api/v1/productos/ZZZ999"), 404).contains("Producto no encontrado: ZZZ999"));
   }
 
   @Test
   void unTokenInvalidoEnUnaRutaPublicaNoImpideLaLectura() throws Exception {
-    respuesta(get("/api/productos").header("Authorization", "Bearer token-basura"), 200);
+    respuesta(get("/api/v1/productos").header("Authorization", "Bearer token-basura"), 200);
   }
 
   // ---------- Productos (solo ADMIN escribe) ----------
@@ -126,16 +130,16 @@ class TiendaIntegracionTests {
   void crearUnProductoSinTokenResponde401YConRolVendedorResponde403() throws Exception {
     String cuerpo = producto("ZZ900", "herramientas", 5000, 0, 10);
 
-    respuesta(conJson(post("/api/productos"), cuerpo), 401);
-    String denegado = respuesta(conJson(post("/api/productos").header("Authorization", "Bearer " + token("VENDEDOR")), cuerpo), 403);
+    respuesta(conJson(post("/api/v1/productos"), cuerpo), 401);
+    String denegado = respuesta(conJson(post("/api/v1/productos").header("Authorization", "Bearer " + token("VENDEDOR")), cuerpo), 403);
 
     assertTrue(denegado.contains("Acceso denegado"));
   }
 
   @Test
   void elAdminCreaUnProductoConElCodigoEnMayusculasYNoSePuedeRepetir() throws Exception {
-    String creado = respuesta(conJson(admin(post("/api/productos")), producto("zz900", "herramientas", 5000, 0, 10)), 201);
-    String repetido = respuesta(conJson(admin(post("/api/productos")), producto("ZZ900", "herramientas", 5000, 0, 10)), 409);
+    String creado = respuesta(conJson(admin(post("/api/v1/productos")), producto("zz900", "herramientas", 5000, 0, 10)), 201);
+    String repetido = respuesta(conJson(admin(post("/api/v1/productos")), producto("ZZ900", "herramientas", 5000, 0, 10)), 409);
 
     assertTrue(creado.contains("\"id\":\"ZZ900\""));
     assertTrue(repetido.contains("Ya existe un producto con el código ZZ900"));
@@ -143,9 +147,9 @@ class TiendaIntegracionTests {
 
   @Test
   void crearUnProductoRechazaDatosInvalidosYCategoriasInexistentes() throws Exception {
-    String precioNegativo = respuesta(conJson(admin(post("/api/productos")), producto("ZZ900", "herramientas", -1, 0, 10)), 400);
-    String descuentoAlto = respuesta(conJson(admin(post("/api/productos")), producto("ZZ900", "herramientas", 5000, 95, 10)), 400);
-    String sinCategoria = respuesta(conJson(admin(post("/api/productos")), producto("ZZ900", "no-existe", 5000, 0, 10)), 400);
+    String precioNegativo = respuesta(conJson(admin(post("/api/v1/productos")), producto("ZZ900", "herramientas", -1, 0, 10)), 400);
+    String descuentoAlto = respuesta(conJson(admin(post("/api/v1/productos")), producto("ZZ900", "herramientas", 5000, 95, 10)), 400);
+    String sinCategoria = respuesta(conJson(admin(post("/api/v1/productos")), producto("ZZ900", "no-existe", 5000, 0, 10)), 400);
 
     assertTrue(precioNegativo.contains("precio: debe ser mayor o igual a 0"));
     assertTrue(descuentoAlto.contains("descuento: debe estar entre 0 y 90"));
@@ -157,23 +161,23 @@ class TiendaIntegracionTests {
     crearProductoDePrueba("ZZ900", 5000, 0, 10);
     String cambiado = producto("ZZ900", "herramientas", 7000, 10, 8).replace("Martillo de prueba", "Martillo editado");
 
-    String editado = respuesta(conJson(admin(put("/api/productos/ZZ900")), cambiado), 200);
+    String editado = respuesta(conJson(admin(put("/api/v1/productos/ZZ900")), cambiado), 200);
     assertTrue(editado.contains("\"nombre\":\"Martillo editado\"") && editado.contains("\"precio\":7000"));
 
-    respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
-    respuesta(admin(delete("/api/productos/ZZ900")), 204);
-    respuesta(get("/api/productos/ZZ900"), 404);
-    assertTrue(respuesta(admin(get("/api/ordenes/ORD-0001")), 200).contains("Martillo editado"));
+    respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
+    respuesta(admin(delete("/api/v1/productos/ZZ900")), 204);
+    respuesta(get("/api/v1/productos/ZZ900"), 404);
+    assertTrue(respuesta(admin(get("/api/v1/ordenes/ORD-0001")), 200).contains("Martillo editado"));
   }
 
   // ---------- Categorías ----------
 
   @Test
   void elAdminCreaUnaCategoriaYNoSePuedeRepetirNiEliminarSiTieneProductos() throws Exception {
-    String creada = respuesta(conJson(admin(post("/api/categorias")), "{\"slug\":\"ceramicas\",\"label\":\"Cerámicas\"}"), 201);
-    String repetida = respuesta(conJson(admin(post("/api/categorias")), "{\"slug\":\"ceramicas\",\"label\":\"Otra\"}"), 409);
-    String conProductos = respuesta(admin(delete("/api/categorias/herramientas")), 409);
-    String slugInvalido = respuesta(conJson(admin(post("/api/categorias")), "{\"slug\":\"Cerámicas Y\",\"label\":\"X\"}"), 400);
+    String creada = respuesta(conJson(admin(post("/api/v1/categorias")), "{\"slug\":\"ceramicas\",\"label\":\"Cerámicas\"}"), 201);
+    String repetida = respuesta(conJson(admin(post("/api/v1/categorias")), "{\"slug\":\"ceramicas\",\"label\":\"Otra\"}"), 409);
+    String conProductos = respuesta(admin(delete("/api/v1/categorias/herramientas")), 409);
+    String slugInvalido = respuesta(conJson(admin(post("/api/v1/categorias")), "{\"slug\":\"Cerámicas Y\",\"label\":\"X\"}"), 400);
 
     assertTrue(creada.contains("\"label\":\"Cerámicas\""));
     assertTrue(repetida.contains("Ya existe la categoría ceramicas"));
@@ -183,13 +187,13 @@ class TiendaIntegracionTests {
 
   @Test
   void editarUnaCategoriaSoloCambiaElNombreYSePuedeEliminarSiEstaVacia() throws Exception {
-    respuesta(conJson(admin(post("/api/categorias")), "{\"slug\":\"ceramicas\",\"label\":\"Cerámicas\"}"), 201);
+    respuesta(conJson(admin(post("/api/v1/categorias")), "{\"slug\":\"ceramicas\",\"label\":\"Cerámicas\"}"), 201);
 
-    String editada = respuesta(conJson(admin(put("/api/categorias/ceramicas")), "{\"slug\":\"otro-slug\",\"label\":\"Cerámicas finas\"}"), 200);
-    respuesta(admin(delete("/api/categorias/ceramicas")), 204);
+    String editada = respuesta(conJson(admin(put("/api/v1/categorias/ceramicas")), "{\"slug\":\"otro-slug\",\"label\":\"Cerámicas finas\"}"), 200);
+    respuesta(admin(delete("/api/v1/categorias/ceramicas")), 204);
 
     assertTrue(editada.contains("\"slug\":\"ceramicas\"") && editada.contains("\"label\":\"Cerámicas finas\""));
-    respuesta(get("/api/categorias/ceramicas"), 404);
+    respuesta(get("/api/v1/categorias/ceramicas"), 404);
   }
 
   // ---------- Órdenes ----------
@@ -198,7 +202,7 @@ class TiendaIntegracionTests {
   void unaCompraAprobadaCalculaPreciosYTotalDescuentaElStockYGuardaElDetalle() throws Exception {
     crearProductoDePrueba("ZZ900", 10000, 20, 5);
 
-    String orden = respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"zz900\",\"cantidad\":2}]", true, DOMICILIO)), 201);
+    String orden = respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"zz900\",\"cantidad\":2}]", true, DOMICILIO)), 201);
 
     assertTrue(orden.contains("\"id\":\"ORD-0001\""));
     assertTrue(orden.contains("\"estado\":\"pagada\""));
@@ -212,7 +216,7 @@ class TiendaIntegracionTests {
   void unaCompraRechazadaQuedaRegistradaSinTocarElStock() throws Exception {
     crearProductoDePrueba("ZZ900", 10000, 0, 5);
 
-    String orden = respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":2}]", false, RETIRO)), 201);
+    String orden = respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":2}]", false, RETIRO)), 201);
 
     assertTrue(orden.contains("\"estado\":\"rechazada\""));
     assertEquals(5, productos.findById("ZZ900").orElseThrow().getStock());
@@ -223,7 +227,7 @@ class TiendaIntegracionTests {
     crearProductoDePrueba("ZZ900", 10000, 0, 5);
     String conDireccion = "{\"tipo\":\"retiro\",\"calle\":\"Algo 1\",\"region\":\"X\",\"comuna\":\"Y\"}";
 
-    String orden = respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, conDireccion)), 201);
+    String orden = respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, conDireccion)), 201);
 
     assertTrue(orden.contains("\"calle\":\"\"") && orden.contains("\"comuna\":\"\""));
   }
@@ -234,7 +238,7 @@ class TiendaIntegracionTests {
     crearProductoDePrueba("ZZ901", 5000, 0, 10);
     String items = "[{\"idProducto\":\"ZZ901\",\"cantidad\":3},{\"idProducto\":\"ZZ900\",\"cantidad\":2}]";
 
-    String texto = respuesta(conJson(post("/api/ordenes"), pedido(items, true, RETIRO)), 409);
+    String texto = respuesta(conJson(post("/api/v1/ordenes"), pedido(items, true, RETIRO)), 409);
 
     assertTrue(texto.contains("Stock insuficiente de Martillo de prueba: quedan 1"));
     assertEquals(1, productos.findById("ZZ900").orElseThrow().getStock());
@@ -247,25 +251,41 @@ class TiendaIntegracionTests {
     crearProductoDePrueba("ZZ900", 10000, 0, 5);
     String repetidos = "[{\"idProducto\":\"ZZ900\",\"cantidad\":1},{\"idProducto\":\"zz900\",\"cantidad\":1}]";
 
-    assertTrue(respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"NO999\",\"cantidad\":1}]", true, RETIRO)), 404).contains("Producto no encontrado: NO999"));
-    assertTrue(respuesta(conJson(post("/api/ordenes"), pedido(repetidos, true, RETIRO)), 400).contains("items: hay productos repetidos"));
-    assertTrue(respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, "{\"tipo\":\"domicilio\"}")), 400).contains("entrega.calle: es obligatorio"));
-    assertTrue(respuesta(conJson(post("/api/ordenes"), pedido("[]", true, RETIRO)), 400).contains("items: debe tener al menos un producto"));
-    assertTrue(respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":0}]", true, RETIRO)), 400).contains("cantidad: debe ser 1 o más"));
+    assertTrue(respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"NO999\",\"cantidad\":1}]", true, RETIRO)), 404).contains("Producto no encontrado: NO999"));
+    assertTrue(respuesta(conJson(post("/api/v1/ordenes"), pedido(repetidos, true, RETIRO)), 400).contains("items: hay productos repetidos"));
+    assertTrue(respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, "{\"tipo\":\"domicilio\"}")), 400).contains("entrega.calle: es obligatorio"));
+    assertTrue(respuesta(conJson(post("/api/v1/ordenes"), pedido("[]", true, RETIRO)), 400).contains("items: debe tener al menos un producto"));
+    assertTrue(respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":0}]", true, RETIRO)), 400).contains("cantidad: debe ser 1 o más"));
   }
 
   @Test
   void soloElAdminVeLasOrdenes() throws Exception {
     crearProductoDePrueba("ZZ900", 10000, 0, 5);
-    respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
-    respuesta(conJson(post("/api/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
+    respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
+    respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
 
-    respuesta(get("/api/ordenes"), 401);
-    respuesta(get("/api/ordenes").header("Authorization", "Bearer " + token("CLIENTE")), 403);
-    String lista = respuesta(admin(get("/api/ordenes")), 200);
+    respuesta(get("/api/v1/ordenes"), 401);
+    respuesta(get("/api/v1/ordenes").header("Authorization", "Bearer " + token("CLIENTE")), 403);
+    String lista = respuesta(admin(get("/api/v1/ordenes")), 200);
 
     assertTrue(lista.contains("ORD-0001") && lista.contains("ORD-0002"));
-    respuesta(admin(get("/api/ordenes/ORD-9999")), 404);
+    respuesta(admin(get("/api/v1/ordenes/ORD-9999")), 404);
+  }
+
+  @Test
+  void elVendedorVeLasOrdenesPeroNoLasConsultasNiModificaProductos() throws Exception {
+    crearProductoDePrueba("ZZ900", 10000, 0, 5);
+    respuesta(conJson(post("/api/v1/ordenes"), pedido("[{\"idProducto\":\"ZZ900\",\"cantidad\":1}]", true, RETIRO)), 201);
+
+    String lista = respuesta(vendedor(get("/api/v1/ordenes")), 200);
+    String detalle = respuesta(vendedor(get("/api/v1/ordenes/ORD-0001")), 200);
+    String consultas = respuesta(vendedor(get("/api/v1/consultas")), 403);
+    String borrado = respuesta(vendedor(delete("/api/v1/productos/ZZ900")), 403);
+
+    assertTrue(lista.contains("ORD-0001"));
+    assertTrue(detalle.contains("ORD-0001"));
+    assertTrue(consultas.contains("Acceso denegado"));
+    assertTrue(borrado.contains("Acceso denegado"));
   }
 
   // ---------- Consultas ----------
@@ -274,9 +294,9 @@ class TiendaIntegracionTests {
   void cualquieraPuedeEnviarUnaConsultaYSoloElAdminLaVe() throws Exception {
     String cuerpo = "{\"nombre\":\"Ana\",\"correo\":\"Ana@Gmail.com\",\"mensaje\":\"Necesito cotizar cemento para una obra.\"}";
 
-    String creada = respuesta(conJson(post("/api/consultas"), cuerpo), 201);
-    respuesta(get("/api/consultas"), 401);
-    String lista = respuesta(admin(get("/api/consultas")), 200);
+    String creada = respuesta(conJson(post("/api/v1/consultas"), cuerpo), 201);
+    respuesta(get("/api/v1/consultas"), 401);
+    String lista = respuesta(admin(get("/api/v1/consultas")), 200);
 
     assertTrue(creada.contains("\"id\":\"C001\"") && creada.contains("\"correo\":\"ana@gmail.com\""));
     assertTrue(lista.contains("Necesito cotizar cemento"));
@@ -284,7 +304,7 @@ class TiendaIntegracionTests {
 
   @Test
   void unaConsultaConUnMensajeCortoSeRechaza() throws Exception {
-    String texto = respuesta(conJson(post("/api/consultas"), "{\"nombre\":\"Ana\",\"correo\":\"ana@gmail.com\",\"mensaje\":\"corto\"}"), 400);
+    String texto = respuesta(conJson(post("/api/v1/consultas"), "{\"nombre\":\"Ana\",\"correo\":\"ana@gmail.com\",\"mensaje\":\"corto\"}"), 400);
 
     assertTrue(texto.contains("mensaje: debe tener entre 20 y 500 caracteres"));
     assertFalse(texto.contains("password"));
@@ -294,7 +314,7 @@ class TiendaIntegracionTests {
 
   @Test
   void elFrontEnLocalhost5173PuedeHacerPeticionesDesdeElNavegador() throws Exception {
-    mvc.perform(options("/api/productos")
+    mvc.perform(options("/api/v1/productos")
         .header("Origin", "http://localhost:5173")
         .header("Access-Control-Request-Method", "POST")
         .header("Access-Control-Request-Headers", "Authorization,Content-Type"))

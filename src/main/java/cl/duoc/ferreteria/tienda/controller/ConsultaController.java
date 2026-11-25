@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 // Enviar una consulta es público; verlas es solo para ADMIN (lo exige SecurityConfig).
 @RestController
-@RequestMapping("/api/consultas")
+@RequestMapping("/api/v1/consultas")
 public class ConsultaController {
   private final ConsultaService consultas;
   public ConsultaController(ConsultaService consultas) { this.consultas = consultas; }

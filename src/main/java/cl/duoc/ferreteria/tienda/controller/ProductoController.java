@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 // Lectura pública; crear, editar y eliminar solo ADMIN (lo exige SecurityConfig).
 @RestController
-@RequestMapping("/api/productos")
+@RequestMapping("/api/v1/productos")
 public class ProductoController {
   private final ProductoService productos;
   public ProductoController(ProductoService productos) { this.productos = productos; }

@@ -2,7 +2,7 @@
 
 Servicio de la tienda de Ferretería Los Maestros (Spring Boot): categorías, productos, órdenes de compra y consultas de contacto. Lo usa el frontend (`ferreteria-front`) y valida los tokens JWT que emite `ferreteria-auth`.
 
-Sigue el contrato de integración del proyecto (puerto **8083**, rutas bajo `/api`, errores como `{ "error": "mensaje" }`).
+Sigue el contrato de integración del proyecto (puerto **8083**, rutas versionadas bajo `/api/v1`, errores como `{ "error": "mensaje" }`).
 
 ## Requisitos
 
@@ -35,24 +35,24 @@ La primera vez se cargan las **9 categorías y los 85 productos** iniciales (si 
 
 | Método y ruta | Acceso | Descripción |
 |---|---|---|
-| `GET /api/categorias`, `GET /api/categorias/{slug}` | público | Lista o ve una categoría |
-| `POST /api/categorias` | ADMIN | Crea (201); 409 si el `slug` ya existe |
-| `PUT /api/categorias/{slug}` | ADMIN | Cambia solo el nombre |
-| `DELETE /api/categorias/{slug}` | ADMIN | 204; 409 si hay productos en la categoría |
-| `GET /api/productos`, `GET /api/productos/{id}` | público | Lista o ve un producto; 404 si no existe |
-| `POST /api/productos` | ADMIN | Crea (201); el `id` es el código y se guarda en mayúsculas; 409 si ya existe |
-| `PUT /api/productos/{id}` | ADMIN | Reemplaza todos los campos menos el código |
-| `DELETE /api/productos/{id}` | ADMIN | 204. Las órdenes ya hechas conservan su detalle |
-| `POST /api/ordenes` | público | Registra una compra (ver abajo) |
-| `GET /api/ordenes`, `GET /api/ordenes/{id}` | ADMIN | Lista (la más reciente primero) o ve una orden |
-| `POST /api/consultas` | público | Guarda un mensaje de contacto (201) |
-| `GET /api/consultas` | ADMIN | Lista las consultas |
+| `GET /api/v1/categorias`, `GET /api/v1/categorias/{slug}` | público | Lista o ve una categoría |
+| `POST /api/v1/categorias` | ADMIN | Crea (201); 409 si el `slug` ya existe |
+| `PUT /api/v1/categorias/{slug}` | ADMIN | Cambia solo el nombre |
+| `DELETE /api/v1/categorias/{slug}` | ADMIN | 204; 409 si hay productos en la categoría |
+| `GET /api/v1/productos`, `GET /api/v1/productos/{id}` | público | Lista o ve un producto; 404 si no existe |
+| `POST /api/v1/productos` | ADMIN | Crea (201); el `id` es el código y se guarda en mayúsculas; 409 si ya existe |
+| `PUT /api/v1/productos/{id}` | ADMIN | Reemplaza todos los campos menos el código |
+| `DELETE /api/v1/productos/{id}` | ADMIN | 204. Las órdenes ya hechas conservan su detalle |
+| `POST /api/v1/ordenes` | público | Registra una compra (ver abajo) |
+| `GET /api/v1/ordenes`, `GET /api/v1/ordenes/{id}` | ADMIN y VENDEDOR | Lista (la más reciente primero) o ve una orden |
+| `POST /api/v1/consultas` | público | Guarda un mensaje de contacto (201) |
+| `GET /api/v1/consultas` | ADMIN | Lista las consultas |
 
 Sin token (o con uno inválido o vencido) las rutas de ADMIN responden 401; con un rol que no es `ADMIN`, 403 con `{ "error": "Acceso denegado" }`. Un token inválido en una ruta pública se ignora.
 
 ## La orden de compra
 
-`POST /api/ordenes` recibe el cliente, la entrega, los ítems (solo `idProducto` y `cantidad`) y `pagoAprobado`, que simula la pasarela de pago:
+`POST /api/v1/ordenes` recibe el cliente, la entrega, los ítems (solo `idProducto` y `cantidad`) y `pagoAprobado`, que simula la pasarela de pago:
 
     {
       "cliente": { "nombre": "Ana", "apellidos": "Pérez", "correo": "ana@gmail.com" },
